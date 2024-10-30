@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+        integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        .update-controller {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-body-tertiary">
+    <div class="container">
+        <h1 class="text-center my-3">my todo app</h1>
+        <div class="input-header">
+            <!-- <h1><span id="date"></span></h1> -->
+            <div class="to-do-input d-flex align-items-center gap-3 mb-4">
+                <input class="form-control form-control-lg " type="text" id="item" placeholder="enter a task"> <button
+                    class="btn btn-primary btn-lg" id="enter">Enter</button>
+            </div>
+        </div>
+        <div class="to-do-list">
+
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+    <script>
+        const itesmsArry = localStorage.getItem("items") ? JSON.parse(localStorage.getItem("items")) : [];
+        console.log(itesmsArry)
+
+        document.querySelector("#enter").addEventListener('click', () => {
+
+            const item = document.querySelector("#item");
+            if (item.value !== "") {
+                createItem(item);
+            }
+        })
+
+        function createItem(item) {
+            let date = new Date();
+            let formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+            itesmsArry.push({ value: item.value, date: formattedDate });
+            localStorage.setItem("items", JSON.stringify(itesmsArry))
+            displayItems();
+            document.querySelector("#item").value = "";
+        }
+        console.log("Array after adding item:", itesmsArry);
+
+        function displayItems() {
+            let items = ""
+            for (let i = 0; i < itesmsArry.length; i++) {
+                let datestore = itesmsArry[i].date
+                items += ` 
+            <div class="item card mb-2" draggable="true" data-index="${i}">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <p>${i + 1}</p>
+                    <p id="date2">last update: ${datestore}</p>
+                </div>
+                <div class="input-controller card-body">
+                    <textarea class="form-control mb-1" name="" id="" disabled>${itesmsArry[i].value}</textarea>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="">
+                            <i class="fa-solid fa-bold"></i>
+                        </div>
+                        <div class="edit-controller text-end ms-auto">
+                            <i class="fa-regular fa-trash-can delete-btn btn"></i>
+                            <i class="fa-solid fa-pencil edit-btn btn"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="update-controller card-footer text-end">
+                    <button class="save-btn btn btn-dark">save</button>
+                    <button class="cancel-btn btn btn-danger">cancel</button>
+                </div>
+            </div>
+        `
+            }
+            console.log(itesmsArry)
+            document.querySelector(".to-do-list").innerHTML = items
+            activeDeleteListener()
+            activeEditListener()
+            activeSaveListener()
+            activeCancelListener()
+            addDragAndDropListeners();
+        }
+
+        function addDragAndDropListeners() {
+            const items = document.querySelectorAll(".item");
+            items.forEach(item => {
+                item.addEventListener("dragstart", handleDragStart);
+                item.addEventListener("dragover", handleDragOver);
+                item.addEventListener("drop", handleDrop);
+                item.addEventListener("dragend", handleDragEnd);
+            });
+        }
+
+        function handleDragStart(event) {
+            event.dataTransfer.setData("text/plain", event.target.dataset.index);
+            event.target.classList.add("dragging");
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            const draggingItem = document.querySelector(".dragging");
+            const dropTarget = event.target.closest(".item");
+            if (dropTarget && dropTarget !== draggingItem) {
+                dropTarget.classList.add("droppable");
+            }
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const draggedIndex = event.dataTransfer.getData("text/plain");
+            const dropIndex = event.target.closest(".item").dataset.index;
+
+            if (draggedIndex !== dropIndex) {
+                const draggedItem = itesmsArry[draggedIndex];
+                itesmsArry.splice(draggedIndex, 1);
+                itesmsArry.splice(dropIndex, 0, draggedItem);
+
+                localStorage.setItem("items", JSON.stringify(itesmsArry));
+                displayItems();
+            }
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove("dragging");
+            const droppableItems = document.querySelectorAll(".item.droppable");
+            droppableItems.forEach(item => item.classList.remove("droppable"));
+        }
+
+        function activeDeleteListener() {
+            let deleteBtn = document.querySelectorAll(".delete-btn")
+            deleteBtn.forEach((db, i) => {
+                db.addEventListener('click', () => { deleteItem(i) })
+            });
+        }
+
+        function deleteItem(i) {
+            itesmsArry.splice(i, 1)
+            localStorage.setItem("items", JSON.stringify(itesmsArry))
+            location.reload()
+        }
+
+        function activeEditListener() {
+            let editBtn = document.querySelectorAll(".edit-btn")
+            const updateController = document.querySelectorAll(".update-controller")
+            const input = document.querySelectorAll(".input-controller textarea")
+            editBtn.forEach((ed, i) => {
+                ed.addEventListener('click', () => {
+                    updateController[i].style.display = " block"
+                    input[i].disabled = false
+
+                })
+
+            })
+        }
+
+        function activeSaveListener() {
+            const saveBtn = document.querySelectorAll(".save-btn")
+            const inputs = document.querySelectorAll(".input-controller textarea")
+            saveBtn.forEach((sb, i) => {
+                sb.addEventListener('click', () => {
+                    updateItem(inputs[i].value, i)
+                })
+            })
+            console.log("save item -before update", itesmsArry)
+
+        }
+
+        function updateItem(text, i) {
+            let date = new Date();
+            let formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`; // Format date and time
+            itesmsArry[i] = { value: text, date: formattedDate }
+            localStorage.setItem("items", JSON.stringify(itesmsArry))
+            displayItems(); // Update the display without reloading the page
+            console.log("Save item - after update:", itesmsArry)
+        }
+
+        function activeCancelListener() {
+            const cancelBtn = document.querySelectorAll(".cancel-btn")
+            const updateController = document.querySelectorAll(".update-controller")
+            const inputs = document.querySelectorAll(".input-controller textarea")
+            cancelBtn.forEach((cd, i) => {
+                cd.addEventListener('click', () => {
+                    updateController[i].style.display = "none"
+                    inputs[i].disabled = true
+                })
+            })
+        }
+
+
+        displayItems()
+    </script>
+</body>
+
+</html>
